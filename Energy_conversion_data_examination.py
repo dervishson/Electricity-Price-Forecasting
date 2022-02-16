@@ -58,6 +58,25 @@ print("S_Avg correlation is ", spotp.corr(S_Avg))           #-0.05
 print("intra_day correlation is ", spotp.corr(intra_day))   #0.96
 print("EUETS_EU correlation is ", spotp.corr(EUETS_EU))     #0.41
 
+
+P=(df["spotprice"].to_numpy()).astype(float).reshape(-1,1)
+L=(df["load"].to_numpy()).astype(float).reshape(-1,1)
+R_c=(df["rel_coal"].to_numpy()).astype(float).reshape(-1,1)
+R_g=(df["rel_gas"].to_numpy()).astype(float).reshape(-1,1)
+R_w=(df["rel_wind"].to_numpy()).astype(float).reshape(-1,1)
+R_s=(df["rel_solar"].to_numpy()).astype(float).reshape(-1,1)
+W_a=(df["W_Avg"].to_numpy()).astype(float).reshape(-1,1)
+S_a=(df["S_Avg"].to_numpy()).astype(float).reshape(-1,1)
+I=(df["intra_day"].to_numpy()).astype(float).reshape(-1,1)
+E=(df["EUETS_EU"].to_numpy()).astype(float).reshape(-1,1)   # maybe less effective
+
+
+"""Hour cycle"""
+H=((df["dummyhour"].to_numpy()).astype(float).reshape(-1,1))
+h_c=np.sin(2*np.pi*H/24)
+"""Day dummies"""
+D=(pd.get_dummies(df["dummyweek"])).to_numpy().astype(float)
+
 """
 Might be rels are one group, intraday,EUETS,load another single groups. In total, 4 groups
 along with spotprice input."""
@@ -77,6 +96,7 @@ Forecast Period            First Observation               Last Observation     
 12 Sep18                2018-08-28 00:00:00 CEST        2018-09-27 23:00:00 CEST    2017-09-01 00:00:00 CEST - 2018-08-27 23:00:00 CEST
 """
 
+##################for month october--According to paper order############################
 #For training Oct17 (Modified according to 168 time lag)
 train_start=df.loc[df["date"]=="2016-09-28 00:00:00"].index.tolist()[0]
 train_end=df.loc[df["date"]=="2017-09-30 23:00:00"].index.tolist()[0]+1
@@ -85,25 +105,6 @@ test_start=df.loc[df["date"]=="2017-09-24 00:00:00"].index.tolist()[0]
 ######Problem indication#####
 """Test  set includes 719 in original however we have chosen 720, but paper uses 720 datapoints for each month. Correct it if necessary"""
 test_end=df.loc[df["date"]=="2017-10-30 23:00:00"].index.tolist()[0]
-
-
-P=(df["spotprice"].to_numpy()).astype(float).reshape(-1,1)
-L=(df["load"].to_numpy()).astype(float).reshape(-1,1)
-R_c=(df["rel_coal"].to_numpy()).astype(float).reshape(-1,1)
-R_g=(df["rel_gas"].to_numpy()).astype(float).reshape(-1,1)
-R_w=(df["rel_wind"].to_numpy()).astype(float).reshape(-1,1)
-R_s=(df["rel_solar"].to_numpy()).astype(float).reshape(-1,1)
-W_a=(df["W_Avg"].to_numpy()).astype(float).reshape(-1,1)
-S_a=(df["S_Avg"].to_numpy()).astype(float).reshape(-1,1)
-I=(df["intra_day"].to_numpy()).astype(float).reshape(-1,1)
-E=(df["EUETS_EU"].to_numpy()).astype(float).reshape(-1,1)   # maybe less effective
-
-
-"""Hour cycle"""
-H=((df["dummyhour"].to_numpy()).astype(float).reshape(-1,1))
-h_c=np.sin(2*np.pi*H/24)
-"""Day dummies"""
-D=(pd.get_dummies(df["dummyweek"])).to_numpy().astype(float)
 
 ####Mean and std values for train inputs######
 m_p,s_p=np.mean(P[train_start:train_end]),np.std(P[train_start:train_end])
@@ -134,6 +135,11 @@ train_price[:,:,0]=(train_price[:,:,0]-m_p)/s_p
 train_load[:,:,0]=(train_load[:,:,0]-m_l)/s_l
 train_intra[:,:,0]=(train_intra[:,:,0]-m_i)/s_i
 
+train_price=np.dstack([train_price,train_hour])
+train_load=np.dstack([train_load,train_hour])
+train_intra=np.dstack([train_intra,train_hour])
+
+
 
 train_labs=P[train_start+168:train_end,0].reshape(-1,1)
 train_labs=(train_labs-m_p)/s_p
@@ -163,6 +169,9 @@ test_price[:,:,0]=(test_price[:,:,0]-m_p)/s_p
 test_load[:,:,0]=(test_load[:,:,0]-m_l)/s_l
 test_intra[:,:,0]=(test_intra[:,:,0]-m_i)/s_i
 
+test_price=np.dstack([test_price,test_hour])
+test_load=np.dstack([test_load,test_hour])
+test_intra=np.dstack([test_intra,test_hour])
 
 test_labs=P[test_start+168:test_end,0].reshape(-1,1)
 test_labs=(test_labs-m_p)/s_p
